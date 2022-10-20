@@ -184,13 +184,14 @@ As a stretch goal we would also like to try to use the same technique to classif
 the artist, not just the style; after some research we've made this seems to be
 a more challenging task.
 
-Next we will move to phase 2 in which we systematically apply style transfer to a
+In phase 2 we systematically apply style transfer to a
 pair of content and style images and measure the tradeoff between the preservation
-of the artistic style and the cohesion of the original image.
+of the artistic style and the cohesion of the original content image.
 We measure the preservation of the style using the method from phase 1, e.g. is the
-style image still correctly classified?
-And we will use classification accuracy before application of style and after application
-of style transfer in order to test the preservation of the content.
+style image still correctly classified by its artistic style?
+As for measuring the cohesion of the content, we will use classification accuracy
+before application of style and after application of style transfer in order to
+test the classification accuracy which we define as content cohesion.
 
 Eventually we will display a curve, similar to AUC curve, which for any given pair
 of content and style images
@@ -208,6 +209,11 @@ for this dataset to be of high enough resolution (so ImageNet may not be a good 
 one option is to use Animal Faces-HQ, produced by \cite{choi2020starganv2}.
 
 \section{Conclusion}
+Our project would first classify classical paintings by their artistic style, and as a
+stretch goal would try to classify by artist as well.
+And then use that ability in order to choose the best weights for style transfer and
+to provide images that both preserve style and preserve content cohesion.
+
 We look forward to starting to work on this project and discover ways to classify
 artistic style and then use this result in order to automatically tune the weights
 parameters of the style transfer algorithm.
