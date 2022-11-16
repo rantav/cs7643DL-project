@@ -138,3 +138,6 @@ doc/**/*.fls
 doc/**/*.log
 doc/**/*.out
 .DS_Store
+
+runs/
+data/
