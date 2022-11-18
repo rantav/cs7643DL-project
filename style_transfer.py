@@ -23,6 +23,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # desired size of the output image
 imsize = 512 if torch.cuda.is_available() else 128  # use small size if no gpu
 imsize = 512
+
 loader = transforms.Compose([
     transforms.Resize(imsize),  # scale imported image
     transforms.ToTensor()])  # transform it into a torch tensor
@@ -35,18 +36,6 @@ def image_loader(image_name):
     return image.to(device, torch.float)
 
 
-# style_img = image_loader("./data/picasso.jpg")
-style_img = image_loader("data/by-artist/test/Cezanne/215495.jpg")
-content_img = image_loader("./data/dancing.jpg")
-# resize style image to content image size
-style_img = transforms.Resize(content_img.shape[-2:])(style_img)
-
-assert style_img.size() == content_img.size(), \
-    "we need to import style and content images of the same size"
-
-unloader = transforms.ToPILImage()  # reconvert into PIL image
-
-plt.ion()
 
 def imshow(tensor, title=None):
     '''Show a single tensor as an image'''
@@ -214,14 +203,6 @@ def get_style_model_and_losses(cnn, normalization_mean, normalization_std,
 
     return model, style_losses, content_losses
 
-input_img = content_img.clone()
-# if you want to use white noise instead uncomment the below line:
-# input_img = torch.randn(content_img.data.size(), device=device)
-
-# add the original input image to the figure:
-# plt.figure()
-# imshow(input_img, title='Input Image')
-
 def get_input_optimizer(input_img):
     # this line to show that input is a parameter that requires a gradient
     optimizer = optim.LBFGS([input_img])
@@ -284,16 +265,52 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
     return input_img
 
+import os
 
-output = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_std,
-                            content_img, style_img, input_img)
+IMAGES_PER_ARTIST = 10
+DATA_DIR = 'data/by-artist/'
+for artist in os.listdir(DATA_DIR + 'test'):
+    if artist.startswith('.'):
+        continue
+    per_artist = 0
+    output_dir = f"{DATA_DIR}style_transfered/{artist}"
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
+    for style_image_id in os.listdir(DATA_DIR + 'test/' + artist):
+        if style_image_id.startswith('.'):
+            continue
+        print(f'\n\n\t >>> Processing style image: {artist}/{style_image_id} \n\n')
+        style_img = image_loader(f"data/by-artist/test/{artist}/{style_image_id}")
+        content_img = image_loader("./data/dancing.jpg")
+        # resize style image to content image size
+        style_img = transforms.Resize(content_img.shape[-2:])(style_img)
 
-save_image(content_img, "output/style_transfer_result.png")
+        assert style_img.size() == content_img.size(), \
+            "we need to import style and content images of the same size"
 
-plt.figure()
+        unloader = transforms.ToPILImage()  # reconvert into PIL image
 
-plot_figures({"style": style_img, "content": content_img, 'style transfered': output}, ncols=3)
-plt.savefig('output/style_transfer_all3.png')
+        plt.ion()
 
-plt.ioff()
-plt.show()
+        input_img = content_img.clone()
+        # if you want to use white noise instead uncomment the below line:
+        # input_img = torch.randn(content_img.data.size(), device=device)
+
+        # add the original input image to the figure:
+        # plt.figure()
+        # imshow(input_img, title='Input Image')
+
+        output = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_std,
+                                    content_img, style_img, input_img)
+        save_image(output, f"{output_dir}/style_transfer_result_{style_image_id}.png")
+
+        # plt.figure()
+
+        # plot_figures({"style": style_img, "content": content_img, 'style transfered': output}, ncols=3)
+        # plt.savefig('output/style_transfer_all3.png')
+
+        # plt.ioff()
+        # plt.show()
+        per_artist += 1
+        if per_artist >= IMAGES_PER_ARTIST:
+            break

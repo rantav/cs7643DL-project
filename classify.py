@@ -88,8 +88,6 @@ optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 
 # Model training routine
-print("\nTraining:-\n")
-
 def train_model(model, criterion, optimizer, scheduler, num_epochs=30):
     since = time.time()
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -157,19 +155,22 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=30):
     model.load_state_dict(best_model_wts)
     return model
 
-num_epochs = 10
-model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=num_epochs)
+# print("\nTraining:-\n")
+# num_epochs = 10
+# model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=num_epochs)
 # Save the model
-PATH="saved-models/model_1.pth"
-print("\nSaving the model...")
-torch.save(model_ft, PATH)
+# PATH="saved-models/model_1.pth"
+# print("\nSaving the model...")
+# torch.save(model_ft, PATH)
 
 
+print("\nEvaluating:-\n")
 EVAL_MODEL= 'saved-models/model_1.pth'
 model = torch.load(EVAL_MODEL)
 model.eval()
 
-EVAL_DIR = 'data/by-artist/test'
+# EVAL_DIR = 'data/by-artist/test'
+EVAL_DIR = 'data/by-artist/style_transfered'
 
 
 # Prepare the eval data loader
