@@ -11,14 +11,15 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 import time, copy
-from torchvision import transforms
-from torchsummary import summary
 from sklearn.metrics import confusion_matrix
 
 
 train_directory = 'data/by-artist/train'
 valid_directory = 'data/by-artist/valid'
 
+def get_resnet18_mean_normailization():
+    return transforms.Normalize([0.485, 0.456, 0.406],
+                                [0.229, 0.224, 0.225])
 image_transforms = {
     'train': transforms.Compose([
         transforms.RandomResizedCrop(size=256, scale=(0.8, 1.0)),
@@ -26,15 +27,13 @@ image_transforms = {
         transforms.RandomHorizontalFlip(),
         transforms.CenterCrop(size=224),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406],
-                             [0.229, 0.224, 0.225])
+        get_resnet18_mean_normailization()
     ]),
     'valid': transforms.Compose([
         transforms.Resize(size=256),
         transforms.CenterCrop(size=224),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406],
-                             [0.229, 0.224, 0.225])
+        get_resnet18_mean_normailization()
     ])
 }
 
@@ -74,10 +73,10 @@ num_ftrs = model_ft.fc.in_features
 model_ft.fc = nn.Linear(num_ftrs, num_classes)
 
 print('Model Summary:-\n')
-for num, (name, param) in enumerate(model_ft.named_parameters()):
-    print(num, name, param.requires_grad )
+# for num, (name, param) in enumerate(model_ft.named_parameters()):
+#     print(num, name, param.requires_grad)
 summary(model_ft, input_size=(3, 224, 224))
-print(model_ft)
+# print(model_ft)
 model_ft = model_ft.to(device)
 
 
@@ -89,8 +88,6 @@ optimizer_ft = optim.SGD(model_ft.parameters(), lr=0.001, momentum=0.9)
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=7, gamma=0.1)
 
 # Model training routine
-print("\nTraining:-\n")
-
 def train_model(model, criterion, optimizer, scheduler, num_epochs=30):
     since = time.time()
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -158,19 +155,22 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=30):
     model.load_state_dict(best_model_wts)
     return model
 
-num_epochs = 10
-model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=num_epochs)
+# print("\nTraining:-\n")
+# num_epochs = 10
+# model_ft = train_model(model_ft, criterion, optimizer_ft, exp_lr_scheduler,num_epochs=num_epochs)
 # Save the model
-PATH="saved-models/model_1.pth"
-print("\nSaving the model...")
-torch.save(model_ft, PATH)
+# PATH="saved-models/model_1.pth"
+# print("\nSaving the model...")
+# torch.save(model_ft, PATH)
 
 
+print("\nEvaluating:-\n")
 EVAL_MODEL= 'saved-models/model_1.pth'
 model = torch.load(EVAL_MODEL)
 model.eval()
 
-EVAL_DIR = 'data/by-artist/test'
+# EVAL_DIR = 'data/by-artist/test'
+EVAL_DIR = 'data/by-artist/style_transfered'
 
 
 # Prepare the eval data loader
@@ -178,8 +178,8 @@ eval_transform=transforms.Compose([
         transforms.Resize(size=256),
         transforms.CenterCrop(size=224),
         transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406],
-                             [0.229, 0.224, 0.225])])
+        get_resnet18_mean_normailization()])
+
 eval_dataset = datasets.ImageFolder(root=EVAL_DIR, transform=eval_transform)
 eval_loader = data.DataLoader(eval_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
 # Enable gpu mode, if cuda available
