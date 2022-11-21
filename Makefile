@@ -30,10 +30,25 @@ tensorboard:
 	source .venv/bin/activate && \
 		tensorboard --logdir=runs
 
-run-classifier-phase1:
-	@echo "Running classifier phase 1..."
+run-train-style-classifier:
+	@echo "Running classifier phase training..."
 	source .venv/bin/activate && \
-		python3 style_classifier.py
+		python3 style_classifier.py  \
+			--task train
+
+run-classify-style:
+	@echo "Classifying styles..."
+	source .venv/bin/activate && \
+		python3 style_classifier.py  \
+			--task classify
+
+run-classify-after-style-transfer:
+	@echo "Classifying styles..."
+	source .venv/bin/activate && \
+		python3 style_classifier.py  \
+			--task classify \
+			--test_directory data/output/style_transfered
+
 
 run-style-transfer:
 	@echo "Running style transfer..."
