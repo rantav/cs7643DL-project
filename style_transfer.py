@@ -1,11 +1,11 @@
 # from https://pytorch.org/tutorials/advanced/neural_style_tutorial.html
 
 from __future__ import print_function
+import argparse
 from collections import namedtuple
 
 import os
 from enum import Enum
-import shutil
 
 import torch
 import torch.nn as nn
@@ -24,14 +24,6 @@ from torchsummary import summary
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # desired size of the output image
 DEFAULT_IMAGE_SIZE = 512 if torch.cuda.is_available() else 128  # use small size if no gpu
-
-TaskConfig = namedtuple('TaskConfig', [
-    'data_dir',
-    'images_per_artist',
-    'output_dir',
-    'start_image',
-    'image_size',
-    'num_steps',])
 
 CnnConfig = namedtuple('CnnConfig', ['model', 'normalization_mean', 'normalization_std'])
 
@@ -270,7 +262,7 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 StartImage = Enum('StartImage', ['content', 'style', 'random'])
 
 def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, content_image_path: str,
-                                output_path: str, config: TaskConfig):
+                                output_path: str, config):
     style_img = image_loader(style_image_path, image_size=config.image_size)
     content_img = image_loader(content_image_path, image_size=config.image_size)
     # resize style image to content image size
@@ -290,7 +282,22 @@ def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, cont
                                 content_img, style_img, input_img, num_steps=config.num_steps,)
     save_image(output, output_path)
 
-def main(config: TaskConfig):
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--style_images_dir', type=str, default='data/by-artist-4artists/test')
+    parser.add_argument('--images_per_artist', type=int, default=5)
+    parser.add_argument('--content_images_dir', type=str, default='data/content')
+    parser.add_argument('--output_dir', type=str, default='data/output/style_transfered')
+    # parser.add_argument('--cnn', type=str, default='vgg19', choices=['vgg19', 'vgg16']) TODO
+    parser.add_argument('--image_size', type=int, default=DEFAULT_IMAGE_SIZE)
+    parser.add_argument('--num_steps', type=int, default=300)
+    # parser.add_argument('--style_weight', type=int, default=1000000) TODO
+    # parser.add_argument('--content_weight', type=int, default=1) TODO
+    parser.add_argument('--start_image', type=StartImage, default=StartImage.content,
+                        choices=list(StartImage))
+    config = parser.parse_args()
+
+
     cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
     cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
     cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
@@ -299,38 +306,33 @@ def main(config: TaskConfig):
     summary(cnn, input_size=(3, 224, 224))
 
 
-    for artist in os.listdir(config.data_dir + 'test'):
+    for artist in os.listdir(config.style_images_dir):
         if artist.startswith('.'):
             continue
         per_artist = 0
         output_dir = f"{config.output_dir}/{artist}"
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        for style_image_id in os.listdir(config.data_dir + 'test/' + artist):
+        for style_image_id in os.listdir(f'{config.style_images_dir}/{artist}'):
             if style_image_id.startswith('.'):
                 continue
 
-            style_image_path = f"{config.data_dir}test/{artist}/{style_image_id}"
-            output_image_path = f"{output_dir}/style_transfer_result_{style_image_id}"
-            content_image_path = './data/chicago.jpg'
+            style_image_path = f"{config.style_images_dir}/{artist}/{style_image_id}"
+            for content_image_id in os.listdir(config.content_images_dir):
+                if content_image_id.startswith('.'):
+                    continue
 
-            print(f'\n\n>>> Processing style image: {artist}/{style_image_id} \n\n')
+                content_image_path = f"{config.content_images_dir}/{content_image_id}"
+                output_image_path = f"{output_dir}/style_transfer_{content_image_id}_{style_image_id}"
 
-            load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
+                print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_id} ...\n\n')
 
-            per_artist += 1
-            if per_artist >= config.images_per_artist:
-                break
+                load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
 
-config = TaskConfig(
-    # data_dir='data/by-artist/',
-    data_dir='data/by-artist-4artists/',
-    images_per_artist=5,
-    output_dir='output/style_transfered',
-    start_image=StartImage.content,
-    image_size=256,
-    num_steps=300,
-)
+                per_artist += 1
+                if per_artist >= config.images_per_artist:
+                    break
+
 
 if __name__ == '__main__':
-    main(config)
+    main()

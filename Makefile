@@ -47,10 +47,7 @@ run-classify-after-style-transfer:
 	source .venv/bin/activate && \
 		python3 style_classifier.py  \
 			--task classify \
-			--test_directory output/style_transfered
-
-
-
+			--test_directory data/output/style_transfered
 
 
 run-style-transfer:
