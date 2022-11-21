@@ -329,9 +329,9 @@ def main():
 
                 load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
 
-                per_artist += 1
-                if per_artist >= config.images_per_artist:
-                    break
+            per_artist += 1
+            if per_artist >= config.images_per_artist:
+                break
 
 
 if __name__ == '__main__':
