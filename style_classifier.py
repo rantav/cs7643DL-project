@@ -2,6 +2,7 @@
 # https://www.kaggle.com/datasets/delayedkarma/impressionist-classifier-data
 # https://abhisheksingh007226.medium.com/how-to-classify-the-paintings-of-an-artist-using-convolutional-neural-network-87e16c0b3ee0
 
+import argparse
 from collections import namedtuple
 import torch
 from torchvision import datasets, models, transforms
@@ -36,7 +37,7 @@ image_transforms = {
     ])
 }
 
-def get_data():
+def get_data(config):
     dataset = {
         'train': datasets.ImageFolder(root=config.train_directory, transform=image_transforms['train']),
         'valid': datasets.ImageFolder(root=config.valid_directory, transform=image_transforms['valid'])
@@ -147,22 +148,12 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=30, dataloade
     model.load_state_dict(best_model_wts)
     return model
 
-Config = namedtuple('Config',
-    ['task',
-     'model_path',
-     'test_directory',
 
-     'train_directory',
-     'valid_directory',
-     'train_num_epochs',
-     'batch_size'])
-
-
-def train(config: Config):
+def train(config):
     print("\nTraining...\n")
 
     # Get the data
-    dataloaders, dataset_sizes, class_names, num_classes = get_data()
+    dataloaders, dataset_sizes, class_names, num_classes = get_data(config)
 
     # Loss function
     criterion = nn.CrossEntropyLoss()
@@ -180,7 +171,7 @@ def train(config: Config):
     torch.save(model, config.model_path)
 
 
-def classify_and_report(config: Config):
+def classify_and_report(config):
     print("\nEvaluating...\n")
     model = torch.load(config.model_path)
     model.eval()
@@ -224,26 +215,23 @@ def classify_and_report(config: Config):
     print('-'*16)
     print(conf_mat,'\n')
 
-config = Config(
-    # task='train',
-    task='classify',
-    model_path='saved-models/model_4artists.pth',
-    # model_path='saved-models/model_1.pth',
-    # test_directory='output/style_transfered/',
-    # train_directory='data/by-artist-4artists/test',
-    test_directory='data/by-artist-4artists/test',
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--task', type=str, default='classify', help='train or classify')
+    parser.add_argument('--model_path', type=str, default='saved-models/model_4artists.pth', help='path to save/load the model')
+    parser.add_argument('--test_directory', type=str, default='data/by-artist-4artists/test', help='path to the test data')
+    parser.add_argument('--train_directory', type=str, default='data/by-artist-4artists/train', help='path to the train data')
+    parser.add_argument('--valid_directory', type=str, default='data/by-artist-4artists/valid', help='path to the valid data')
+    parser.add_argument('--train_num_epochs', type=int, default=10, help='number of epochs to train')
+    parser.add_argument('--batch_size', type=int, default=8, help='batch size')
+    config = parser.parse_args()
 
-    train_directory='data/by-artist-4artists/train',
-    valid_directory='data/by-artist-4artists/valid',
-    train_num_epochs = 10,
-    batch_size = 8,
-)
-
-
-if __name__ == '__main__':
     if config.task == 'classify':
         classify_and_report(config)
     elif config.task == 'train':
         train(config)
     else:
         raise ValueError(f"Unknown task {config.task}")
+
+if __name__ == '__main__':
+    main()
