@@ -33,4 +33,9 @@ tensorboard:
 run-classifier-phase1:
 	@echo "Running classifier phase 1..."
 	source .venv/bin/activate && \
-		python3 classify.py
+		python3 style_classifier.py
+
+run-style-transfer:
+	@echo "Running style transfer..."
+	source .venv/bin/activate && \
+		python3 style_transfer.py
