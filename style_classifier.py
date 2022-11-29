@@ -218,7 +218,7 @@ def classify_and_report(config):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', type=str, default='classify', help='train or classify')
-    parser.add_argument('--model_path', type=str, default='saved-models/model_4artists.pth', help='path to save/load the model')
+    parser.add_argument('--model_path', type=str, default='saved-models/model_4artists_256.pth', help='path to save/load the model')
     parser.add_argument('--test_directory', type=str, default='data/by-artist-4artists-256/test', help='path to the test data')
     parser.add_argument('--train_directory', type=str, default='data/by-artist-4artists-256/train', help='path to the train data')
     parser.add_argument('--valid_directory', type=str, default='data/by-artist-4artists-256/valid', help='path to the valid data')
