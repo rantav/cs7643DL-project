@@ -1,6 +1,11 @@
 # from https://pytorch.org/tutorials/advanced/neural_style_tutorial.html
 
 from __future__ import print_function
+import argparse
+from collections import namedtuple
+
+import os
+from enum import Enum
 
 import torch
 import torch.nn as nn
@@ -16,20 +21,16 @@ from torchvision.utils import save_image
 
 from torchsummary import summary
 
-import copy
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 # desired size of the output image
-imsize = 512 if torch.cuda.is_available() else 128  # use small size if no gpu
-imsize = 512
+DEFAULT_IMAGE_SIZE = 512 if torch.cuda.is_available() else 128  # use small size if no gpu
 
-loader = transforms.Compose([
-    transforms.Resize(imsize),  # scale imported image
-    transforms.ToTensor()])  # transform it into a torch tensor
+CnnConfig = namedtuple('CnnConfig', ['model', 'normalization_mean', 'normalization_std'])
 
-
-def image_loader(image_name):
+def image_loader(image_name: str, image_size: int = DEFAULT_IMAGE_SIZE):
+    loader = transforms.Compose([
+        transforms.Resize(image_size),  # scale imported image
+        transforms.ToTensor()])  # transform it into a torch tensor
     image = Image.open(image_name)
     # fake batch dimension required to fit network's input dimensions
     image = loader(image).unsqueeze(0)
@@ -41,6 +42,7 @@ def imshow(tensor, title=None):
     '''Show a single tensor as an image'''
     image = tensor.cpu().clone()  # we clone the tensor to not do changes on it
     image = image.squeeze(0)      # remove the fake batch dimension
+    unloader = transforms.ToPILImage()  # reconvert into PIL image
     image = unloader(image)
     plt.imshow(image)
     if title is not None:
@@ -63,6 +65,7 @@ def plot_figures(figures, nrows = 1, ncols=1):
         tensor = figures[title]
         image = tensor.cpu().clone()  # we clone the tensor to not do changes on it
         image = image.squeeze(0)      # remove the fake batch dimension
+        unloader = transforms.ToPILImage()  # reconvert into PIL image
         image = unloader(image)
         axeslist.ravel()[ind].imshow(image, cmap=plt.gray())
         axeslist.ravel()[ind].set_title(title)
@@ -117,14 +120,6 @@ class StyleLoss(nn.Module):
         return input
 
 
-cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
-
-print('CNN Summary:\n')
-summary(cnn, input_size=(3, 224, 224))
-
-cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
-cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
-
 # create a module to normalize input image so we can easily put it in a
 # nn.Sequential
 class Normalization(nn.Module):
@@ -141,13 +136,12 @@ class Normalization(nn.Module):
         return (img - self.mean) / self.std
 
 # desired depth layers to compute style/content losses :
-content_layers_default = ['conv_4']
-style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
-
+CONTENT_LAYER_DEFAULT = ['conv_4']
+STYLE_LAYER_DEFAULT = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 def get_style_model_and_losses(cnn, normalization_mean, normalization_std,
                                style_img, content_img,
-                               content_layers=content_layers_default,
-                               style_layers=style_layers_default):
+                               content_layers=CONTENT_LAYER_DEFAULT,
+                               style_layers=STYLE_LAYER_DEFAULT):
     # normalization module
     normalization = Normalization(normalization_mean, normalization_std).to(device)
 
@@ -223,7 +217,7 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
     optimizer = get_input_optimizer(input_img)
 
-    print('Optimizing..')
+    print('Running style transfer..')
     run = [0]
     while run[0] <= num_steps:
 
@@ -265,52 +259,83 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
     return input_img
 
-import os
+StartImage = Enum('StartImage', ['content', 'style', 'random'])
 
-IMAGES_PER_ARTIST = 10
-DATA_DIR = 'data/by-artist/'
-for artist in os.listdir(DATA_DIR + 'test'):
-    if artist.startswith('.'):
-        continue
-    per_artist = 0
-    output_dir = f"{DATA_DIR}style_transfered/{artist}"
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
-    for style_image_id in os.listdir(DATA_DIR + 'test/' + artist):
-        if style_image_id.startswith('.'):
-            continue
-        print(f'\n\n\t >>> Processing style image: {artist}/{style_image_id} \n\n')
-        style_img = image_loader(f"data/by-artist/test/{artist}/{style_image_id}")
-        content_img = image_loader("./data/dancing.jpg")
-        # resize style image to content image size
-        style_img = transforms.Resize(content_img.shape[-2:])(style_img)
+def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, content_image_path: str,
+                                output_path: str, config):
+    style_img = image_loader(style_image_path, image_size=config.image_size)
+    content_img = image_loader(content_image_path, image_size=config.image_size)
+    # resize style image to content image size
+    style_img = transforms.Resize(content_img.shape[-2:])(style_img)
 
-        assert style_img.size() == content_img.size(), \
-            "we need to import style and content images of the same size"
+    assert style_img.size() == content_img.size(), \
+        "we need to import style and content images of the same size"
 
-        unloader = transforms.ToPILImage()  # reconvert into PIL image
-
-        plt.ion()
-
+    if config.start_image == StartImage.content:
         input_img = content_img.clone()
-        # if you want to use white noise instead uncomment the below line:
-        # input_img = torch.randn(content_img.data.size(), device=device)
+    elif config.start_image == StartImage.style:
+        input_img = style_img.clone()
+    else:
+        input_img = torch.randn(content_img.data.size(), device=device)
 
-        # add the original input image to the figure:
-        # plt.figure()
-        # imshow(input_img, title='Input Image')
+    output = run_style_transfer(cnn_conf.model, cnn_conf.normalization_mean, cnn_conf.normalization_std,
+                                content_img, style_img, input_img, num_steps=config.num_steps,
+                                style_weight=config.style_weight, content_weight=config.content_weight)
+    save_image(output, output_path)
 
-        output = run_style_transfer(cnn, cnn_normalization_mean, cnn_normalization_std,
-                                    content_img, style_img, input_img)
-        save_image(output, f"{output_dir}/style_transfer_result_{style_image_id}.png")
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--style_images_dir', type=str, default='data/by-artist-4artists-256/test')
+    parser.add_argument('--images_per_artist', type=int, default=5)
+    parser.add_argument('--content_images_dir', type=str, default='data/content')
+    parser.add_argument('--output_dir', type=str, default='data/output/style_transfered')
+    # parser.add_argument('--cnn', type=str, default='vgg19', choices=['vgg19', 'vgg16']) TODO
+    parser.add_argument('--image_size', type=int, default=DEFAULT_IMAGE_SIZE)
+    parser.add_argument('--num_steps', type=int, default=300)
+    parser.add_argument('--style_weight', type=int, default=1000000)
+    parser.add_argument('--content_weight', type=int, default=1)
+    parser.add_argument('--start_image', type=StartImage, default=StartImage.content,
+                        choices=list(StartImage))
+    config = parser.parse_args()
 
-        # plt.figure()
 
-        # plot_figures({"style": style_img, "content": content_img, 'style transfered': output}, ncols=3)
-        # plt.savefig('output/style_transfer_all3.png')
+    cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
+    cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
+    cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
+    cnn_conf = CnnConfig(cnn, cnn_normalization_mean, cnn_normalization_std)
+    print('CNN Summary:\n')
+    summary(cnn, input_size=(3, 224, 224))
 
-        # plt.ioff()
-        # plt.show()
-        per_artist += 1
-        if per_artist >= IMAGES_PER_ARTIST:
-            break
+
+    for artist in os.listdir(config.style_images_dir):
+        if artist.startswith('.'):
+            continue
+        per_artist = 0
+        output_dir = f"{config.output_dir}/{artist}"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        for style_image_id in os.listdir(f'{config.style_images_dir}/{artist}'):
+            if style_image_id.startswith('.'):
+                continue
+
+            style_image_path = f"{config.style_images_dir}/{artist}/{style_image_id}"
+            for content_image_id in os.listdir(config.content_images_dir):
+                if content_image_id.startswith('.'):
+                    continue
+
+                content_image_path = f"{config.content_images_dir}/{content_image_id}"
+                output_image_path = f"{output_dir}/style_transfer_{content_image_id}_{style_image_id}"
+
+                print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_id} ...\n\n')
+                if os.path.exists(output_image_path):
+                    print(f'>>> Output image already exists: {output_image_path}')
+                else:
+                    load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
+
+            per_artist += 1
+            if per_artist >= config.images_per_artist:
+                break
+
+
+if __name__ == '__main__':
+    main()
