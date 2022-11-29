@@ -5,6 +5,7 @@ import argparse
 from collections import namedtuple
 
 import os
+import shutil
 from enum import Enum
 
 import torch
@@ -288,6 +289,7 @@ def main():
     parser.add_argument('--style_images_dir', type=str, default='data/by-artist-4artists-256/test')
     parser.add_argument('--images_per_artist', type=int, default=5)
     parser.add_argument('--content_images_dir', type=str, default='data/content')
+    parser.add_argument('--images_per_class', type=int, default=5)
     parser.add_argument('--output_dir', type=str, default='data/output/style_transfered')
     # parser.add_argument('--cnn', type=str, default='vgg19', choices=['vgg19', 'vgg16']) TODO
     parser.add_argument('--image_size', type=int, default=DEFAULT_IMAGE_SIZE)
@@ -311,27 +313,46 @@ def main():
         if artist.startswith('.'):
             continue
         per_artist = 0
-        output_dir = f"{config.output_dir}/{artist}"
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        output_dir_style = f"{config.output_dir}/style/{artist}"
+        if not os.path.exists(output_dir_style):
+            os.makedirs(output_dir_style)
         for style_image_id in os.listdir(f'{config.style_images_dir}/{artist}'):
             if style_image_id.startswith('.'):
                 continue
 
             style_image_path = f"{config.style_images_dir}/{artist}/{style_image_id}"
-            for content_image_id in os.listdir(config.content_images_dir):
-                if content_image_id.startswith('.'):
+
+            per_class = 0
+            for content_image_class in os.listdir(config.content_images_dir):
+                if content_image_class.startswith('.'):
                     continue
 
-                content_image_path = f"{config.content_images_dir}/{content_image_id}"
-                output_image_path = f"{output_dir}/style_transfer_{content_image_id}_{style_image_id}"
+                output_dir_content = f"{config.output_dir}/content/{content_image_class}"
+                if not os.path.exists(output_dir_content):
+                    os.makedirs(output_dir_content)
 
-                print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_id} ...\n\n')
-                if os.path.exists(output_image_path):
-                    print(f'>>> Output image already exists: {output_image_path}')
-                else:
-                    load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
+                for content_image_id in os.listdir(f'{config.content_images_dir}/{content_image_class}'):
+                    if content_image_id.startswith('.'):
+                        continue
 
+                    content_image_path = f"{config.content_images_dir}/{content_image_class}/{content_image_id}"
+
+                    style_output_image_path = f"{output_dir_style}/style_transfer_{content_image_id}_{style_image_id}"
+                    content_output_image_path = f"{output_dir_content}/style_transfer_{content_image_id}_{style_image_id}"
+
+                    print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_id} ...\n\n')
+                    if os.path.exists(style_output_image_path):
+                        print(f'>>> Output image already exists: {style_output_image_path}')
+                    else:
+                        load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, style_output_image_path, config=config)
+                    if os.path.exists(content_output_image_path):
+                        print(f'>>> Output image already exists: {content_output_image_path}')
+                    else:
+                        shutil.copyfile(style_output_image_path, content_output_image_path)
+
+                    per_class += 1
+                    if per_class >= config.images_per_class:
+                        break
             per_artist += 1
             if per_artist >= config.images_per_artist:
                 break
