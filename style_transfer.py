@@ -279,20 +279,21 @@ def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, cont
         input_img = torch.randn(content_img.data.size(), device=device)
 
     output = run_style_transfer(cnn_conf.model, cnn_conf.normalization_mean, cnn_conf.normalization_std,
-                                content_img, style_img, input_img, num_steps=config.num_steps,)
+                                content_img, style_img, input_img, num_steps=config.num_steps,
+                                style_weight=config.style_weight, content_weight=config.content_weight)
     save_image(output, output_path)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--style_images_dir', type=str, default='data/by-artist-4artists/test')
+    parser.add_argument('--style_images_dir', type=str, default='data/by-artist-4artists-256/test')
     parser.add_argument('--images_per_artist', type=int, default=5)
     parser.add_argument('--content_images_dir', type=str, default='data/content')
     parser.add_argument('--output_dir', type=str, default='data/output/style_transfered')
     # parser.add_argument('--cnn', type=str, default='vgg19', choices=['vgg19', 'vgg16']) TODO
     parser.add_argument('--image_size', type=int, default=DEFAULT_IMAGE_SIZE)
     parser.add_argument('--num_steps', type=int, default=300)
-    # parser.add_argument('--style_weight', type=int, default=1000000) TODO
-    # parser.add_argument('--content_weight', type=int, default=1) TODO
+    parser.add_argument('--style_weight', type=int, default=1000000)
+    parser.add_argument('--content_weight', type=int, default=1)
     parser.add_argument('--start_image', type=StartImage, default=StartImage.content,
                         choices=list(StartImage))
     config = parser.parse_args()
@@ -326,8 +327,10 @@ def main():
                 output_image_path = f"{output_dir}/style_transfer_{content_image_id}_{style_image_id}"
 
                 print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_id} ...\n\n')
-
-                load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
+                if os.path.exists(output_image_path):
+                    print(f'>>> Output image already exists: {output_image_path}')
+                else:
+                    load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
 
             per_artist += 1
             if per_artist >= config.images_per_artist:
