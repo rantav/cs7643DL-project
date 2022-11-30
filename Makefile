@@ -14,19 +14,19 @@ update-requirements:
 		pip install -r requirements.txt
 	@echo "Done."
 
-data:
+data-download:
 	@echo "Downloading data..."
-		wget -P ./ https://storage.googleapis.com/dl-project-data/by-artist-4artists-256.zip
-	unzip ./by-artist-4artists-256.zip -d .
+	rm -f dl-project-data.zip
+	wget -P ./ https://storage.googleapis.com/dl-project-data/dl-project-data.zip
+	unzip ./dl-project-data.zip -d .
 	@echo "Done."
 
-upload-data:
-	@echo "Uploading data..."
-	rm -rf by-artist-4artists-256.zip
-	zip -r by-artist-4artists-256.zip data/by-artist-4artists-256/
-	zip -ur by-artist-4artists-256.zip data/content
-
-	@echo "Done. Now you need to upload the file by-artist-4artists-256.zip to Google"
+data-upload:
+	@echo "Zipping data..."
+	rm -f dl-project-data.zip
+	zip -qr dl-project-data.zip data/by-artist-4artists-256/
+	zip -qur dl-project-data.zip data/by-content
+	@echo "Done. Now you need to upload the file dl-project-data.zip to Google"
 
 
 jupyter:

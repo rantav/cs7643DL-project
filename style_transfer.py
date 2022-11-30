@@ -288,7 +288,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--style_images_dir', type=str, default='data/by-artist-4artists-256/test')
     parser.add_argument('--images_per_artist', type=int, default=5)
-    parser.add_argument('--content_images_dir', type=str, default='data/content')
+    parser.add_argument('--content_images_dir', type=str, default='data/by-content/val')
     parser.add_argument('--images_per_class', type=int, default=5)
     parser.add_argument('--output_dir', type=str, default='data/output/style_transfered')
     # parser.add_argument('--cnn', type=str, default='vgg19', choices=['vgg19', 'vgg16']) TODO
