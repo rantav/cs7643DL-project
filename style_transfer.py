@@ -337,10 +337,11 @@ def main():
 
                     content_image_path = f"{config.content_images_dir}/{content_image_class}/{content_image_id}"
 
-                    style_output_image_path = f"{output_dir_style}/style_transfer_{content_image_id}_{style_image_id}"
-                    content_output_image_path = f"{output_dir_content}/style_transfer_{content_image_id}_{style_image_id}"
+                    output_name = f'{artist}_{style_image_id}_{content_image_class}_{content_image_id}'
+                    style_output_image_path = f"{output_dir_style}/{output_name}"
+                    content_output_image_path = f"{output_dir_content}/{output_name}"
 
-                    print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_id} ...\n\n')
+                    print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_class}/{content_image_id} ...\n\n')
                     if os.path.exists(style_output_image_path):
                         print(f'>>> Output image already exists: {style_output_image_path}')
                     else:
