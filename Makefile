@@ -42,19 +42,19 @@ tensorboard:
 run-train-style-classifier:
 	@echo "Running classifier phase training..."
 	source .venv/bin/activate && \
-		python3 style_classifier.py  \
+		python style_classifier.py  \
 			 --task train
 
 run-classify-style:
 	@echo "Classifying styles..."
 	source .venv/bin/activate && \
-		python3 style_classifier.py  \
+		python style_classifier.py  \
 			--task classify
 
 run-classify-style-after-style-transfer:
 	@echo "Classifying styles..."
 	source .venv/bin/activate && \
-		python3 style_classifier.py  \
+		python style_classifier.py  \
 			--task classify \
 			--test_directory data/output/style_transfered256_style_weight_1000000
 
@@ -62,6 +62,6 @@ run-classify-style-after-style-transfer:
 run-style-transfer:
 	@echo "Running style transfer..."
 	source .venv/bin/activate && \
-		python3 style_transfer.py \
+		python style_transfer.py \
 			--image_size=256 \
-			--output_dir=data/output/style_transfered256
+			--output_dir=data/output/style_transfered
