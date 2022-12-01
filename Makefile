@@ -65,3 +65,14 @@ run-style-transfer:
 		python style_transfer.py \
 			--image_size=256 \
 			--output_dir=data/output/style_transfered
+
+run-experiments:
+	@echo "Running experiments..."
+	source .venv/bin/activate && \
+		python experiment.py \
+			--image_size=256 \
+			--output_dir=data/output/style_transfered \
+			--images_per_artist=5 \
+			--images_per_class=5 \
+			--num_steps=300 \
+			--style_weight 10000 50000 100000 500000 1000000
