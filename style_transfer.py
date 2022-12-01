@@ -286,8 +286,37 @@ def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, cont
 
 Params = namedtuple('Params', ['image_size', 'num_steps', 'style_weight', 'content_weight', 'start_image'])
 
-def params_str(params: Params):
-    return f'image_size_{params.image_size}_num_steps_{params.num_steps}_style_weight_{params.style_weight}'
+cnn_conf_ = None
+
+def load_cnn():
+    '''Load the CNN or use the already loaded one to save time'''
+    global cnn_conf_
+    if cnn_conf_ is None:
+        cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
+        cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
+        cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
+        cnn_conf_ = CnnConfig(cnn, cnn_normalization_mean, cnn_normalization_std)
+        # print('CNN Summary:\n')
+        # summary(cnn, input_size=(3, 224, 224))
+    return cnn_conf_
+
+
+def run(content_image_path, style_image_path, output_name, output_dir_style, output_dir_content, params):
+    cnn_conf = load_cnn()
+
+    style_output_image_path = f"{output_dir_style}/{output_name}"
+    content_output_image_path = f"{output_dir_content}/{output_name}"
+
+    print(f'Processing {output_name}...')
+    if os.path.exists(style_output_image_path):
+        print(f'>>> Output image already exists: {style_output_image_path}')
+    else:
+        load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, style_output_image_path, config=params)
+    if os.path.exists(content_output_image_path):
+        print(f'>>> Output image already exists: {content_output_image_path}')
+    else:
+        shutil.copyfile(style_output_image_path, content_output_image_path)
+
 
 def main():
     parser = argparse.ArgumentParser()

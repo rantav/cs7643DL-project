@@ -171,9 +171,8 @@ def train(config):
     torch.save(model, config.model_path)
 
 
-def classify_and_report(config):
-    print("\nEvaluating...\n")
-    model = torch.load(config.model_path)
+def classify_and_report(model_path, data_path, batch_size):
+    model = torch.load(model_path)
     model.eval()
 
     # Prepare the eval data loader
@@ -183,11 +182,8 @@ def classify_and_report(config):
             transforms.ToTensor(),
             get_resnet18_mean_normailization()])
 
-    eval_dataset = datasets.ImageFolder(root=config.test_directory, transform=eval_transform)
-    eval_loader = data.DataLoader(eval_dataset, batch_size=config.batch_size, shuffle=True, pin_memory=True)
-    # Enable gpu mode, if cuda available
-    # Number of classes and dataset-size
-    # num_classes=len(eval_dataset.classes)
+    eval_dataset = datasets.ImageFolder(root=data_path, transform=eval_transform)
+    eval_loader = data.DataLoader(eval_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
     dsize = len(eval_dataset)
 
     # Initialize the prediction and label lists
@@ -214,6 +210,7 @@ def classify_and_report(config):
     print('Confusion Matrix')
     print('-'*16)
     print(conf_mat,'\n')
+    return overall_accuracy
 
 def main():
     parser = argparse.ArgumentParser()
@@ -227,7 +224,7 @@ def main():
     config = parser.parse_args()
 
     if config.task == 'classify':
-        classify_and_report(config)
+        classify_and_report(config.model_path, config.test_directory, config.batch_size)
     elif config.task == 'train':
         train(config)
     else:
