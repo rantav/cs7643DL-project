@@ -76,3 +76,14 @@ run-experiments:
 			--images_per_class=5 \
 			--num_steps=300 \
 			--style_weight 10000 50000 100000 500000 1000000
+
+gcp-ssh:
+	gcloud compute ssh \
+		--zone "us-east4-c" "deeplearning-1-vm"  \
+		--project "dl-project-368810"
+
+gcp-copy-results:
+	gcloud compute scp \
+		--project dl-project-368810 \
+		--zone us-east4-c \
+		--recurse deeplearning-1-vm:~/cs7643DL-project/data/output/style_transfered .
