@@ -8,6 +8,7 @@ import pandas as pd
 
 import style_transfer
 import style_classifier
+import content_classifier
 
 def params_str(params: style_transfer.Params):
     return f'image_size_{params.image_size}_num_steps_{params.num_steps}_style_weight_{params.style_weight}'
@@ -107,11 +108,15 @@ def main():
 
 def classify(output_dir_base, style_classifier_model_path, content_classifier_model_path):
         batch_size = 16
+
         style_classification_path = os.path.join(output_dir_base, 'style')
         style_accuracy = style_classifier.classify_and_report(style_classifier_model_path,
             style_classification_path, batch_size)
-        # TODO: content classification
-        content_accuracy = 0
+
+        content_classification_path = os.path.join(output_dir_base, 'content')
+        content_accuracy = content_classifier.classify_and_report(content_classifier_model_path,
+            content_classification_path, batch_size)
+
         return style_accuracy, content_accuracy
 
 
