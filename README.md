@@ -4,6 +4,7 @@ Members: Xenia Kramarenko, Ran Tavory
 
 ## Project Description
 TODO
+x
 
 ## Setup
 1. Clone the repository

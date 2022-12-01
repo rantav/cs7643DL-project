@@ -171,9 +171,8 @@ def train(config):
     torch.save(model, config.model_path)
 
 
-def classify_and_report(config):
-    print("\nEvaluating...\n")
-    model = torch.load(config.model_path)
+def classify_and_report(model_path, data_path, batch_size):
+    model = torch.load(model_path).to(device)
     model.eval()
 
     # Prepare the eval data loader
@@ -183,16 +182,13 @@ def classify_and_report(config):
             transforms.ToTensor(),
             get_resnet18_mean_normailization()])
 
-    eval_dataset = datasets.ImageFolder(root=config.test_directory, transform=eval_transform)
-    eval_loader = data.DataLoader(eval_dataset, batch_size=config.batch_size, shuffle=True, pin_memory=True)
-    # Enable gpu mode, if cuda available
-    # Number of classes and dataset-size
-    # num_classes=len(eval_dataset.classes)
+    eval_dataset = datasets.ImageFolder(root=data_path, transform=eval_transform)
+    eval_loader = data.DataLoader(eval_dataset, batch_size=batch_size, shuffle=True, pin_memory=True)
     dsize = len(eval_dataset)
 
     # Initialize the prediction and label lists
-    predlist = torch.zeros(0,dtype=torch.long, device=device)
-    lbllist = torch.zeros(0,dtype=torch.long, device=device)
+    predlist = torch.zeros(0, dtype=torch.long, device=device)
+    lbllist = torch.zeros(0, dtype=torch.long, device=device)
     # Evaluate the model accuracy on the dataset
     correct = 0
     total = 0
@@ -203,22 +199,23 @@ def classify_and_report(config):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-            predlist = torch.cat([predlist,predicted.view(-1).cpu()])
-            lbllist = torch.cat([lbllist,labels.view(-1).cpu()])
+            predlist = torch.cat([predlist, predicted.view(-1)])
+            lbllist = torch.cat([lbllist, labels.view(-1)])
     # Overall accuracy
     overall_accuracy = 100 * correct / total
     print('Accuracy of the network on the {:d} test images: {:.2f}%'.format(dsize,
         overall_accuracy))
     # Confusion matrix
-    conf_mat = confusion_matrix(lbllist.numpy(), predlist.numpy())
+    conf_mat = confusion_matrix(lbllist.cpu().numpy(), predlist.cpu().numpy())
     print('Confusion Matrix')
     print('-'*16)
     print(conf_mat,'\n')
+    return overall_accuracy
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--task', type=str, default='classify', help='train or classify')
-    parser.add_argument('--model_path', type=str, default='saved-models/model_4artists.pth', help='path to save/load the model')
+    parser.add_argument('--model_path', type=str, default='saved-models/model_4artists_256.pth', help='path to save/load the model')
     parser.add_argument('--test_directory', type=str, default='data/by-artist-4artists-256/test', help='path to the test data')
     parser.add_argument('--train_directory', type=str, default='data/by-artist-4artists-256/train', help='path to the train data')
     parser.add_argument('--valid_directory', type=str, default='data/by-artist-4artists-256/valid', help='path to the valid data')
@@ -227,7 +224,7 @@ def main():
     config = parser.parse_args()
 
     if config.task == 'classify':
-        classify_and_report(config)
+        classify_and_report(config.model_path, config.test_directory, config.batch_size)
     elif config.task == 'train':
         train(config)
     else:

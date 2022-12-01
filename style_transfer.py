@@ -5,6 +5,7 @@ import argparse
 from collections import namedtuple
 
 import os
+import shutil
 from enum import Enum
 
 import torch
@@ -14,11 +15,11 @@ import torch.optim as optim
 
 from PIL import Image
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import torchvision.transforms as transforms
 import torchvision.models as models
 from torchvision.utils import save_image
-
 from torchsummary import summary
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -283,19 +284,53 @@ def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, cont
                                 style_weight=config.style_weight, content_weight=config.content_weight)
     save_image(output, output_path)
 
+Params = namedtuple('Params', ['image_size', 'num_steps', 'style_weight', 'content_weight', 'start_image'])
+
+cnn_conf_ = None
+
+def load_cnn():
+    '''Load the CNN or use the already loaded one to save time'''
+    global cnn_conf_
+    if cnn_conf_ is None:
+        cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
+        cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
+        cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
+        cnn_conf_ = CnnConfig(cnn, cnn_normalization_mean, cnn_normalization_std)
+        # print('CNN Summary:\n')
+        # summary(cnn, input_size=(3, 224, 224))
+    return cnn_conf_
+
+
+def run(content_image_path, style_image_path, output_name, output_dir_style, output_dir_content, params):
+    cnn_conf = load_cnn()
+
+    style_output_image_path = f"{output_dir_style}/{output_name}"
+    content_output_image_path = f"{output_dir_content}/{output_name}"
+
+    print(f'Processing {output_name}...')
+    if os.path.exists(style_output_image_path):
+        print(f'>>> Output image already exists: {style_output_image_path}')
+    else:
+        load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, style_output_image_path, config=params)
+    if os.path.exists(content_output_image_path):
+        print(f'>>> Output image already exists: {content_output_image_path}')
+    else:
+        shutil.copyfile(style_output_image_path, content_output_image_path)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--style_images_dir', type=str, default='data/by-artist-4artists-256/test')
     parser.add_argument('--images_per_artist', type=int, default=5)
-    parser.add_argument('--content_images_dir', type=str, default='data/content')
+    parser.add_argument('--content_images_dir', type=str, default='data/by-content/val')
+    parser.add_argument('--images_per_class', type=int, default=5)
     parser.add_argument('--output_dir', type=str, default='data/output/style_transfered')
     # parser.add_argument('--cnn', type=str, default='vgg19', choices=['vgg19', 'vgg16']) TODO
     parser.add_argument('--image_size', type=int, default=DEFAULT_IMAGE_SIZE)
     parser.add_argument('--num_steps', type=int, default=300)
-    parser.add_argument('--style_weight', type=int, default=1000000)
+    parser.add_argument('--style_weight', type=int, nargs='+', default=1000000)
     parser.add_argument('--content_weight', type=int, default=1)
-    parser.add_argument('--start_image', type=StartImage, default=StartImage.content,
-                        choices=list(StartImage))
+    parser.add_argument('--start_image', type=StartImage, default=StartImage.content, choices=list(StartImage))
     config = parser.parse_args()
 
 
@@ -303,38 +338,74 @@ def main():
     cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
     cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
     cnn_conf = CnnConfig(cnn, cnn_normalization_mean, cnn_normalization_std)
-    print('CNN Summary:\n')
-    summary(cnn, input_size=(3, 224, 224))
+    # print('CNN Summary:\n')
+    # summary(cnn, input_size=(3, 224, 224))
 
+    output_index = []
 
-    for artist in os.listdir(config.style_images_dir):
-        if artist.startswith('.'):
-            continue
-        per_artist = 0
-        output_dir = f"{config.output_dir}/{artist}"
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        for style_image_id in os.listdir(f'{config.style_images_dir}/{artist}'):
-            if style_image_id.startswith('.'):
+    for style_weight in config.style_weight:
+        params = Params(config.image_size, config.num_steps, style_weight, config.content_weight, config.start_image)
+        print(f'Params: {params}')
+        output_dir_base = os.path.join(config.output_dir, params_str(params))
+        output_index.append({
+            'path': output_dir_base,
+            'image_size': params.image_size,
+            'num_steps': params.num_steps,
+            'style_weight': style_weight,
+            'content_weight': params.content_weight,
+            'start_image': params.start_image.name,
+            'images_per_artist': config.images_per_artist,
+            'images_per_class': config.images_per_class,
+        })
+        for artist in os.listdir(config.style_images_dir):
+            if artist.startswith('.'):
                 continue
-
-            style_image_path = f"{config.style_images_dir}/{artist}/{style_image_id}"
-            for content_image_id in os.listdir(config.content_images_dir):
-                if content_image_id.startswith('.'):
+            per_artist = 0
+            output_dir_style = f"{output_dir_base}/style/{artist}"
+            if not os.path.exists(output_dir_style):
+                os.makedirs(output_dir_style)
+            for style_image_id in os.listdir(f'{config.style_images_dir}/{artist}'):
+                if style_image_id.startswith('.'):
                     continue
 
-                content_image_path = f"{config.content_images_dir}/{content_image_id}"
-                output_image_path = f"{output_dir}/style_transfer_{content_image_id}_{style_image_id}"
+                style_image_path = f"{config.style_images_dir}/{artist}/{style_image_id}"
 
-                print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_id} ...\n\n')
-                if os.path.exists(output_image_path):
-                    print(f'>>> Output image already exists: {output_image_path}')
-                else:
-                    load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, output_image_path, config=config)
+                per_class = 0
+                for content_image_class in os.listdir(config.content_images_dir):
+                    if content_image_class.startswith('.'):
+                        continue
 
-            per_artist += 1
-            if per_artist >= config.images_per_artist:
-                break
+                    output_dir_content = f"{output_dir_base}/content/{content_image_class}"
+                    if not os.path.exists(output_dir_content):
+                        os.makedirs(output_dir_content)
+
+                    for content_image_id in os.listdir(f'{config.content_images_dir}/{content_image_class}'):
+                        if content_image_id.startswith('.'):
+                            continue
+
+                        content_image_path = f"{config.content_images_dir}/{content_image_class}/{content_image_id}"
+
+                        output_name = f'{artist}_{style_image_id}_{content_image_class}_{content_image_id}'
+                        style_output_image_path = f"{output_dir_style}/{output_name}"
+                        content_output_image_path = f"{output_dir_content}/{output_name}"
+
+                        print(f'\n\n>>> Processing style image: {artist}/{style_image_id} and content image {content_image_class}/{content_image_id} ...\n\n')
+                        if os.path.exists(style_output_image_path):
+                            print(f'>>> Output image already exists: {style_output_image_path}')
+                        else:
+                            load_and_run_style_transfer(cnn_conf, style_image_path, content_image_path, style_output_image_path, config=params)
+                        if os.path.exists(content_output_image_path):
+                            print(f'>>> Output image already exists: {content_output_image_path}')
+                        else:
+                            shutil.copyfile(style_output_image_path, content_output_image_path)
+
+                        per_class += 1
+                        if per_class >= config.images_per_class:
+                            break
+                per_artist += 1
+                if per_artist >= config.images_per_artist:
+                    break
+        pd.DataFrame(output_index).to_csv(f'{config.output_dir}/index.csv', index=False)
 
 
 if __name__ == '__main__':
