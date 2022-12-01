@@ -408,5 +408,5 @@ def main():
         pd.DataFrame(output_index).to_csv(f'{config.output_dir}/index.csv', index=False)
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()

@@ -86,4 +86,4 @@ gcp-copy-results:
 	gcloud compute scp \
 		--project dl-project-368810 \
 		--zone us-east4-c \
-		--recurse deeplearning-1-vm:~/cs7643DL-project/data/output/style_transfered .
+		--recurse deeplearning-1-vm:~/cs7643DL-project/data/output/style_transfered data/output/
