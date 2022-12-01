@@ -47,7 +47,7 @@ def main():
         print(f'Params: {params}')
         num_artists = 0
         output_dir_base = os.path.join(config.output_dir, params_str(params))
-        for artist in os.listdir(config.style_images_dir):
+        for artist in sorted(os.listdir(config.style_images_dir)):
             if artist.startswith('.'):
                 continue
             per_artist = 0
@@ -55,7 +55,7 @@ def main():
             output_dir_style = f"{output_dir_base}/style/{artist}"
             if not os.path.exists(output_dir_style):
                 os.makedirs(output_dir_style)
-            for style_image_id in os.listdir(f'{config.style_images_dir}/{artist}'):
+            for style_image_id in sorted(os.listdir(f'{config.style_images_dir}/{artist}')):
                 if style_image_id.startswith('.'):
                     continue
 
@@ -63,7 +63,7 @@ def main():
 
                 num_classes = 0
                 per_class = 0
-                for content_image_class in os.listdir(config.content_images_dir):
+                for content_image_class in sorted(os.listdir(config.content_images_dir)):
                     if content_image_class.startswith('.'):
                         continue
 
@@ -72,7 +72,7 @@ def main():
                     if not os.path.exists(output_dir_content):
                         os.makedirs(output_dir_content)
 
-                    for content_image_id in os.listdir(f'{config.content_images_dir}/{content_image_class}'):
+                    for content_image_id in sorted(os.listdir(f'{config.content_images_dir}/{content_image_class}')):
                         if content_image_id.startswith('.'):
                             continue
                         content_image_path = f"{config.content_images_dir}/{content_image_class}/{content_image_id}"
