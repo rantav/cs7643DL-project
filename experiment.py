@@ -33,15 +33,24 @@ def main():
 
     output_index = []
 
+    estimated_total_images = ((len(os.listdir(config.style_images_dir)) - 1) *
+                              config.images_per_artist *
+                              (len(os.listdir(config.content_images_dir)) - 1) *
+                              config.images_per_class *
+                              len(config.style_weight))
+    total_images = 0
+
     for style_weight in config.style_weight:
         params = style_transfer.Params(config.image_size, config.num_steps, style_weight,
                                        config.content_weight, config.start_image)
         print(f'Params: {params}')
+        num_artists = 0
         output_dir_base = os.path.join(config.output_dir, params_str(params))
         for artist in os.listdir(config.style_images_dir):
             if artist.startswith('.'):
                 continue
             per_artist = 0
+            num_artists += 1
             output_dir_style = f"{output_dir_base}/style/{artist}"
             if not os.path.exists(output_dir_style):
                 os.makedirs(output_dir_style)
@@ -51,11 +60,13 @@ def main():
 
                 style_image_path = f"{config.style_images_dir}/{artist}/{style_image_id}"
 
+                num_classes = 0
                 per_class = 0
                 for content_image_class in os.listdir(config.content_images_dir):
                     if content_image_class.startswith('.'):
                         continue
 
+                    num_classes += 1
                     output_dir_content = f"{output_dir_base}/content/{content_image_class}"
                     if not os.path.exists(output_dir_content):
                         os.makedirs(output_dir_content)
@@ -68,6 +79,8 @@ def main():
 
                         style_transfer.run(content_image_path, style_image_path, output_name, output_dir_style, output_dir_content, params)
 
+                        total_images += 1
+                        print(f'Processed {total_images} images, overall progress: {total_images / estimated_total_images * 100:.2f}%')
                         per_class += 1
                         if per_class >= config.images_per_class:
                             break
@@ -82,8 +95,11 @@ def main():
             'style_weight': style_weight,
             'content_weight': params.content_weight,
             'start_image': params.start_image.name,
-            'images_per_artist': config.images_per_artist,
-            'images_per_class': config.images_per_class,
+            'images_per_artist': per_artist,
+            'images_per_class': per_class,
+            'num_artists': num_artists,
+            'num_classes': num_classes,
+            'total_images': total_images,
             'style_accuracy': style_accuracy,
             'content_accuracy': content_accuracy
         })
