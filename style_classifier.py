@@ -172,7 +172,7 @@ def train(config):
 
 
 def classify_and_report(model_path, data_path, batch_size):
-    model = torch.load(model_path)
+    model = torch.load(model_path).to(device)
     model.eval()
 
     # Prepare the eval data loader
@@ -187,8 +187,8 @@ def classify_and_report(model_path, data_path, batch_size):
     dsize = len(eval_dataset)
 
     # Initialize the prediction and label lists
-    predlist = torch.zeros(0,dtype=torch.long, device=device)
-    lbllist = torch.zeros(0,dtype=torch.long, device=device)
+    predlist = torch.zeros(0, dtype=torch.long, device=device)
+    lbllist = torch.zeros(0, dtype=torch.long, device=device)
     # Evaluate the model accuracy on the dataset
     correct = 0
     total = 0
@@ -199,14 +199,14 @@ def classify_and_report(model_path, data_path, batch_size):
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-            predlist = torch.cat([predlist,predicted.view(-1).cpu()])
-            lbllist = torch.cat([lbllist,labels.view(-1).cpu()])
+            predlist = torch.cat([predlist, predicted.view(-1)])
+            lbllist = torch.cat([lbllist, labels.view(-1)])
     # Overall accuracy
     overall_accuracy = 100 * correct / total
     print('Accuracy of the network on the {:d} test images: {:.2f}%'.format(dsize,
         overall_accuracy))
     # Confusion matrix
-    conf_mat = confusion_matrix(lbllist.numpy(), predlist.numpy())
+    conf_mat = confusion_matrix(lbllist.cpu().numpy(), predlist.cpu().numpy())
     print('Confusion Matrix')
     print('-'*16)
     print(conf_mat,'\n')
