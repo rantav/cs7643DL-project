@@ -28,7 +28,7 @@ def main():
                         default=style_transfer.StartImage.content,
                         choices=list(style_transfer.StartImage))
     parser.add_argument('--style_classifier_model_path', type=str, default='saved-models/model_4artists_256.pth')
-    parser.add_argument('--content_classifier_model_path', type=str, default='saved-models/model_...TODO.pth')
+    parser.add_argument('--content_classifier_model_path', type=str, default='saved-models/content_classifier.pth')
     config = parser.parse_args()
 
     output_index = []
