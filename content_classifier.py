@@ -11,7 +11,7 @@ def get_resnet18_mean_normailization():
 
 
 def classify_and_report(model_path, data_path, batch_size):
-    model = torch.load(model_path).to(device)
+    model = torch.load(model_path, map_location=torch.device(device)).to(device)
     model.eval()
 
     # Prepare the eval data loader
