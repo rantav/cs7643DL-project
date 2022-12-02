@@ -172,7 +172,7 @@ def train(config):
 
 
 def classify_and_report(model_path, data_path, batch_size):
-    model = torch.load(model_path).to(device)
+    model = torch.load(model_path, map_location=torch.device(device)).to(device)
     model.eval()
 
     # Prepare the eval data loader
@@ -203,8 +203,7 @@ def classify_and_report(model_path, data_path, batch_size):
             lbllist = torch.cat([lbllist, labels.view(-1)])
     # Overall accuracy
     overall_accuracy = 100 * correct / total
-    print('Accuracy of the network on the {:d} test images: {:.2f}%'.format(dsize,
-        overall_accuracy))
+    print('Style accuracy  on the {:d} images: {:.2f}%'.format(dsize, overall_accuracy))
     # Confusion matrix
     conf_mat = confusion_matrix(lbllist.cpu().numpy(), predlist.cpu().numpy())
     print('Confusion Matrix')
