@@ -4,8 +4,9 @@ from torch.autograd import Variable
 import torchvision.transforms as T
 import PIL
 from PIL import Image
-from image_utils import SQUEEZENET_MEAN, SQUEEZENET_STD
-# import matplotlib.pyplot as plt
+from object_classification.image_utils import SQUEEZENET_MEAN, SQUEEZENET_STD
+import matplotlib.pyplot as plt
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def preprocess(img, size=512):
@@ -16,7 +17,7 @@ def preprocess(img, size=512):
                     std=SQUEEZENET_STD.tolist()),
         T.Lambda(lambda x: x[None]),
     ])
-    return transform(img)
+    return transform(img).to(device)
 
 
 def deprocess(img):
@@ -83,22 +84,7 @@ def extract_features(x, cnn):
 def style_transfer(name, content_image, style_image, image_size, style_size, content_layer, content_weight,
                    style_layers, style_weights, tv_weight, content_loss, style_loss, tv_loss, cnn, dtype,
                    init_random=False, testing=False):
-    """
-    Run style transfer!
-
-    Inputs:
-    - content_image: filename of content image
-    - style_image: filename of style image
-    - image_size: size of smallest image dimension (used for content loss and generated image)
-    - style_size: size of smallest style image dimension
-    - content_layer: layer to use for content loss
-    - content_weight: weighting on content loss
-    - style_layers: list of layers to use for style loss
-    - style_weights: list of weights to use for each layer in style_layers
-    - tv_weight: weight of total variation regularization term
-    - init_random: initialize the starting image to uniform random noise
-    """
-
+    
     # Extract features for the content image
     content_img = preprocess(PIL.Image.open(content_image), size=image_size)
     content_img_var = Variable(content_img.type(dtype))
@@ -131,17 +117,6 @@ def style_transfer(name, content_image, style_image, image_size, style_size, con
     # in the img_var Torch variable, whose requires_grad flag is set to True
     optimizer = torch.optim.Adam([img_var], lr=initial_lr)
 
-    # if not testing:
-    #     f, axarr = plt.subplots(1, 2)
-    #     axarr[0].axis('off')
-    #     axarr[1].axis('off')
-    #     axarr[0].set_title('Content Source Img.')
-    #     axarr[1].set_title('Style Source Img.')
-    #     axarr[0].imshow(deprocess(content_img.cpu()))
-    #     axarr[1].imshow(deprocess(style_img.cpu()))
-    #     # plt.savefig('styles_images/' + name + '_before.png', bbox_inches='tight')
-    #     plt.show()
-    #     plt.figure()
 
     for t in range(200):
         if t < 190:
@@ -174,15 +149,5 @@ def style_transfer(name, content_image, style_image, image_size, style_size, con
         ##############################################################################
         #                             END OF YOUR CODE                               #
         ##############################################################################
-    # if not testing:
-        # if t % 100 == 0:
-        #     print('Iteration {}'.format(t))
-        #     plt.axis('off')
-        #     plt.imshow(deprocess(img.cpu()))
-        #     plt.show()
-        # plt.axis('off')
-        # plt.imshow(deprocess(img.cpu()))
-        # img.cpu().savefig('styles_images/' + name + '.png', bbox_inches='tight')
-        #plt.show()
     # Do not edit or delete below this line - used for testing the script
     return img

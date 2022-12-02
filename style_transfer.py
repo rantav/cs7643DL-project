@@ -22,6 +22,8 @@ import torchvision.models as models
 from torchvision.utils import save_image
 from torchsummary import summary
 
+from object_classification.image_utils import deprocess
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # desired size of the output image
 DEFAULT_IMAGE_SIZE = 512 if torch.cuda.is_available() else 128  # use small size if no gpu
@@ -282,7 +284,11 @@ def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, cont
     output = run_style_transfer(cnn_conf.model, cnn_conf.normalization_mean, cnn_conf.normalization_std,
                                 content_img, style_img, input_img, num_steps=config.num_steps,
                                 style_weight=config.style_weight, content_weight=config.content_weight)
-    save_image(output, output_path)
+    res = deprocess(res.cpu())
+
+    # content_size = Image.open(content_img_path).size
+    res.save(output_path)
+    # save_image(output, output_path)
 
 Params = namedtuple('Params', ['image_size', 'num_steps', 'style_weight', 'content_weight', 'start_image'])
 
@@ -292,7 +298,7 @@ def load_cnn():
     '''Load the CNN or use the already loaded one to save time'''
     global cnn_conf_
     if cnn_conf_ is None:
-        cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
+        cnn = models.vgg19().features.to(device).eval()
         cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
         cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
         cnn_conf_ = CnnConfig(cnn, cnn_normalization_mean, cnn_normalization_std)
