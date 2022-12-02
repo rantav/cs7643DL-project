@@ -46,6 +46,7 @@ def main():
                                        config.content_weight, config.start_image)
         print(f'Params: {params}')
         num_artists = 0
+        num_images = 0
         output_dir_base = os.path.join(config.output_dir, params_str(params))
         for artist in sorted(os.listdir(config.style_images_dir)):
             if artist.startswith('.'):
@@ -81,6 +82,7 @@ def main():
                         style_transfer.run(content_image_path, style_image_path, output_name, output_dir_style, output_dir_content, params)
 
                         total_images += 1
+                        num_images += 1
                         print(f'Processed {total_images} images, overall progress: {total_images / estimated_total_images * 100:.2f}%')
                         per_class += 1
                         if per_class >= config.images_per_class:
@@ -100,7 +102,7 @@ def main():
             'images_per_class': per_class,
             'num_artists': num_artists,
             'num_classes': num_classes,
-            'total_images': total_images,
+            'num_images': num_images,
             'style_accuracy': style_accuracy,
             'content_accuracy': content_accuracy
         })
