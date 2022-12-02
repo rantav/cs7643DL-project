@@ -83,7 +83,10 @@ gcp-ssh:
 		--project "dl-project-368810"
 
 gcp-copy-results:
-	gcloud compute scp \
-		--project dl-project-368810 \
-		--zone us-east4-c \
-		--recurse deeplearning-1-vm:~/cs7643DL-project/data/output/style_transfered data/output/
+	rsync -avz $$(gcloud compute instances list --project "dl-project-368810" --filter="deeplearning-1-vm" --format "get(networkInterfaces[0].accessConfigs[0].natIP)"):~/cs7643DL-project/data/output/style_transfered \
+		 data/output
+	# gcloud compute scp \
+	# 	--project dl-project-368810 \
+	# 	--zone us-east4-c \
+	# 	--recurse deeplearning-1-vm:~/cs7643DL-project/data/output/style_transfered data/output/
+
