@@ -8,6 +8,7 @@ import pandas as pd
 
 import style_transfer
 import style_classifier
+import content_classifier
 
 def params_str(params: style_transfer.Params):
     return f'image_size_{params.image_size}_num_steps_{params.num_steps}_style_weight_{params.style_weight}'
@@ -28,7 +29,7 @@ def main():
                         default=style_transfer.StartImage.content,
                         choices=list(style_transfer.StartImage))
     parser.add_argument('--style_classifier_model_path', type=str, default='saved-models/model_4artists_256.pth')
-    parser.add_argument('--content_classifier_model_path', type=str, default='saved-models/model_...TODO.pth')
+    parser.add_argument('--content_classifier_model_path', type=str, default='saved-models/content_classifier.pth')
     config = parser.parse_args()
 
     output_index = []
@@ -45,8 +46,9 @@ def main():
                                        config.content_weight, config.start_image)
         print(f'Params: {params}')
         num_artists = 0
+        num_images = 0
         output_dir_base = os.path.join(config.output_dir, params_str(params))
-        for artist in os.listdir(config.style_images_dir):
+        for artist in sorted(os.listdir(config.style_images_dir)):
             if artist.startswith('.'):
                 continue
             per_artist = 0
@@ -54,7 +56,7 @@ def main():
             output_dir_style = f"{output_dir_base}/style/{artist}"
             if not os.path.exists(output_dir_style):
                 os.makedirs(output_dir_style)
-            for style_image_id in os.listdir(f'{config.style_images_dir}/{artist}'):
+            for style_image_id in sorted(os.listdir(f'{config.style_images_dir}/{artist}')):
                 if style_image_id.startswith('.'):
                     continue
 
@@ -62,7 +64,7 @@ def main():
 
                 num_classes = 0
                 per_class = 0
-                for content_image_class in os.listdir(config.content_images_dir):
+                for content_image_class in sorted(os.listdir(config.content_images_dir)):
                     if content_image_class.startswith('.'):
                         continue
 
@@ -71,7 +73,7 @@ def main():
                     if not os.path.exists(output_dir_content):
                         os.makedirs(output_dir_content)
 
-                    for content_image_id in os.listdir(f'{config.content_images_dir}/{content_image_class}'):
+                    for content_image_id in sorted(os.listdir(f'{config.content_images_dir}/{content_image_class}')):
                         if content_image_id.startswith('.'):
                             continue
                         content_image_path = f"{config.content_images_dir}/{content_image_class}/{content_image_id}"
@@ -80,6 +82,7 @@ def main():
                         style_transfer.run(content_image_path, style_image_path, output_name, output_dir_style, output_dir_content, params)
 
                         total_images += 1
+                        num_images += 1
                         print(f'Processed {total_images} images, overall progress: {total_images / estimated_total_images * 100:.2f}%')
                         per_class += 1
                         if per_class >= config.images_per_class:
@@ -99,7 +102,7 @@ def main():
             'images_per_class': per_class,
             'num_artists': num_artists,
             'num_classes': num_classes,
-            'total_images': total_images,
+            'num_images': num_images,
             'style_accuracy': style_accuracy,
             'content_accuracy': content_accuracy
         })
@@ -107,11 +110,15 @@ def main():
 
 def classify(output_dir_base, style_classifier_model_path, content_classifier_model_path):
         batch_size = 16
+
         style_classification_path = os.path.join(output_dir_base, 'style')
         style_accuracy = style_classifier.classify_and_report(style_classifier_model_path,
             style_classification_path, batch_size)
-        # TODO: content classification
-        content_accuracy = 0
+
+        content_classification_path = os.path.join(output_dir_base, 'content')
+        content_accuracy = content_classifier.classify_and_report(content_classifier_model_path,
+            content_classification_path, batch_size)
+
         return style_accuracy, content_accuracy
 
 
