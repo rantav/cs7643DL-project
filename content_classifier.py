@@ -2,6 +2,7 @@ import torch
 from torchvision import datasets, transforms
 import torch.utils.data as data
 from sklearn.metrics import confusion_matrix
+from PIL import Image
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -42,11 +43,12 @@ def classify_and_report(model_path, data_path, batch_size):
             lbllist = torch.cat([lbllist, labels.view(-1)])
     # Overall accuracy
     overall_accuracy = 100 * correct / total
-    print('Accuracy of the network on the {:d} test images: {:.2f}%'.format(dsize,
-        overall_accuracy))
+    print('Content accuracy  on the {:d} images: {:.2f}%'.format(dsize, overall_accuracy))
     # Confusion matrix
     conf_mat = confusion_matrix(lbllist.cpu().numpy(), predlist.cpu().numpy())
     print('Confusion Matrix')
     print('-'*16)
     print(conf_mat,'\n')
     return overall_accuracy
+
+
