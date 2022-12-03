@@ -69,6 +69,7 @@ def style_transfer_our(dtype, cnn, content_img_path, style_img_path, out_img_pat
 
     # content_size = Image.open(content_img_path).size
     res.resize(org_size).save(out_img_path)
+    print(f"finished file {out_img_path}")
     return res
 
 for root, subdirs, files in os.walk(walk_dir):

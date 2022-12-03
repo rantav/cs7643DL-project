@@ -284,7 +284,7 @@ def load_and_run_style_transfer(cnn_conf: CnnConfig, style_image_path: str, cont
     output = run_style_transfer(cnn_conf.model, cnn_conf.normalization_mean, cnn_conf.normalization_std,
                                 content_img, style_img, input_img, num_steps=config.num_steps,
                                 style_weight=config.style_weight, content_weight=config.content_weight)
-    res = deprocess(res.cpu())
+    res = deprocess(output.cpu())
 
     # content_size = Image.open(content_img_path).size
     res.save(output_path)
