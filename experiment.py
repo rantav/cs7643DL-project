@@ -6,9 +6,15 @@ import argparse
 import os
 import pandas as pd
 
+import torch
+from torchvision import transforms
+from PIL import Image
+
 import style_transfer
 import style_classifier
 import content_classifier
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def params_str(params: style_transfer.Params):
     return f'image_size_{params.image_size}_num_steps_{params.num_steps}_style_weight_{params.style_weight}'
@@ -122,5 +128,40 @@ def classify(output_dir_base, style_classifier_model_path, content_classifier_mo
         return style_accuracy, content_accuracy
 
 
+def classify_single(content_model_path, style_model_path, image_path,
+                    content_classes=['cat', 'chicken', 'cow', 'dog', 'squirell'],
+                    style_classes=['Hassam', 'Matisse', 'Renoir', 'VanGogh']):
+    content_cl = torch.load(content_model_path, map_location=torch.device(device)).to(device)
+    content_cl.eval()
+
+    style_cl = torch.load(style_model_path, map_location=torch.device(device)).to(device)
+    style_cl.eval()
+
+    img = Image.open(image_path)
+    eval_transform = transforms.Compose([
+            transforms.Resize(size=256),
+            transforms.CenterCrop(size=224),
+            transforms.ToTensor(),
+            style_classifier.get_resnet18_mean_normailization()])
+    # get normalized image
+    img_normalized = eval_transform(img).float()
+    img_normalized = img_normalized.unsqueeze_(0)
+    img_normalized = img_normalized.to(device)
+
+    with torch.no_grad():
+        def clf(model, img, classes):
+            output = model(img)
+            index = output.data.cpu().numpy().argmax()
+            class_name = classes[index]
+            print(class_name)
+            return class_name
+        style_class = clf(style_cl, img_normalized, style_classes)
+        content_class = clf(content_cl, img_normalized, content_classes)
+        return style_class, content_class
+
 if __name__ == '__main__':
     main()
+    # classify_single('saved-models/content_classifier.pth', 'saved-models/model_4artists_256.pth',
+    #                 'data/output/style_transfered/image_size_256_num_steps_300_style_weight_1/content/chicken/Hassam_243856.jpg_chicken_10.jpeg')
+    # classify_single('saved-models/content_classifier.pth', 'saved-models/model_4artists_256.pth',
+    #                 'data/output/noisy/VanGogh_206842.jpg_squirell_OIP-6Ti8_CsyqCAL8uP-F2vPIQHaE8.jpeg')
