@@ -18,7 +18,13 @@
             "request": "launch",
             "program": "${workspaceFolder}/style_transfer.py",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "args": [
+                "--content_image", "data/by-content/val/cat/10.jpeg",
+                "--style_image", "data/by-artist-4artists-256/test/VanGogh/205688.jpg",
+                "--style_weight", "30_000_000",
+                "--image_size", "256",
+            ]
         },
         {
             "name": "style_classifier",
