@@ -1,4 +1,4 @@
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import numpy as np
 import sys
@@ -32,53 +32,71 @@ dtype = torch.FloatTensor
 # # Test total variation loss
 # tv_loss = TotalVariationLoss()
 
-content_dir = "D:\\datasets\\animals-10\\val\\"
-new_style_dir = "D:\\style"
-new_content_dir = "D:\\content"
+home_dir = "D:"
+# style = "val"
 
-style = "Ukiyo_e"
-wiki_dir = f"D:\\datasets\\wikiart\\wikiart\\{style}"
-output_path = f"D:\\results\\{style}\\"
+content_dir = f"{home_dir}/datasets/animals-10"
+new_style_dir = f"{home_dir}/style"
+new_content_dir = f"{home_dir}/content"
+wiki_dir = f"{home_dir}/datasets/wikiart-filtered-styles"
+output_path = f"{home_dir}/results/animals_styled_5_classes"
 img_size = 256
+
+
+
+def execute_file(root, filename):
+    content_path = f"{root}/{filename}"
+    content_name = content_path.split('/')[-1]
+    new_content_img_dir = f"{new_content_dir}/{content_name}"
+    content_img = Image.open(content_path)
+    img_size = 256 #min(content_img.size)
+    content_img.resize((img_size, img_size)).save(new_content_img_dir)
+
+    style_path = f"{wiki_dir}/{random.choice(os.listdir(wiki_dir))}" #change dir name to whatever
+    style_name = style_path.split("/")[-1]
+    style_path = f"{style_path}/{random.choice(os.listdir(style_path))}" #change dir name to whatever
+
+    output_file_path =  content_path.replace(content_dir, output_path)
+    output_file_path = f"{os.path.dirname(output_file_path)}/{style_name}_{content_name}" #
+    if os.path.exists(output_file_path):
+        return
+        
+    style_name = style_path.split('/')[-1]
+    new_style_img_dir = f"{new_style_dir}/{style_name}"
+    style_img = Image.open(style_path)
+    #style_size = min(style_img.size)
+    style_img.resize((img_size, img_size)).save(new_style_img_dir)
+    
+    output_dir = os.path.dirname(output_file_path)
+    os.makedirs(output_dir, exist_ok=True)
+    if len(os.listdir(output_dir)) >=500:
+        return
+
+
+    # num_steps = 300
+    # content_weight = 1
+    # style_weight = 10000
+    # start_img = image_loader(new_content_img_dir, image_size=img_size)
+    # params = Params(img_size, num_steps, style_weight, content_weight, start_img)
+    # cnn_conf = load_cnn()
+    # load_and_run_style_transfer(cnn_conf, new_style_img_dir, new_content_img_dir, output_file_path, config=params)
+    # new_var = output_file_path.replace(".jpeg", "_hw.jpeg")
+    style_transfer_our(dtype, None, new_content_img_dir, new_style_img_dir, output_file_path, img_size, img_size, org_size = content_img.size)
+    # img  = Image.open(output_file_path)
+    # img = img.resize(content_img.size)
+    # img.save(output_file_path)
+
+    # print(f"finished file {i} from {len(files)}")
+
+ 
 if __name__ == '__main__':
-    with ProcessPoolExecutor(2) as executor:
+    with ThreadPoolExecutor(2) as executor:
         for root, subdirs, files in os.walk(content_dir):
             #random.shuffle(files)
             for i, filename in enumerate(files):
-                if i>=30:
+                if i>=500:
                     break
-
-                content_path = os.path.join(root, filename)
-                content_name = content_path.split('\\')[-1]
-                new_content_img_dir = f"{new_content_dir}\\{content_name}"
-                content_img = Image.open(content_path)
-                img_size = 256 #min(content_img.size)
-                content_img.resize((img_size, img_size)).save(new_content_img_dir)
-
-                style_path = f"{wiki_dir}\\{random.choice(os.listdir(wiki_dir))}" #change dir name to whatever
-                # style_path = f"{style_path}\\{random.choice(os.listdir(style_path))}" #change dir name to whatever
-                style_name = style_path.split('\\')[-1]
-                new_style_img_dir = f"{new_style_dir}\\{style_name}"
-                style_img = Image.open(style_path)
-                #style_size = min(style_img.size)
-                style_img.resize((img_size, img_size)).save(new_style_img_dir)
-
-                output_file_path = content_path.replace(content_dir, output_path)
-                os.makedirs(os.path.dirname(output_file_path), exist_ok=True)
-
-
-                # num_steps = 300
-                # content_weight = 1
-                # style_weight = 10000
-                # start_img = image_loader(new_content_img_dir, image_size=img_size)
-                # params = Params(img_size, num_steps, style_weight, content_weight, start_img)
-                # cnn_conf = load_cnn()
-                # load_and_run_style_transfer(cnn_conf, new_style_img_dir, new_content_img_dir, output_file_path, config=params)
-                # new_var = output_file_path.replace(".jpeg", "_hw.jpeg")
-                style_transfer_our(dtype, None, new_content_img_dir, new_style_img_dir, output_file_path, img_size, img_size, org_size = content_img.size)
-                # img  = Image.open(output_file_path)
-                # img = img.resize(content_img.size)
-                # img.save(output_file_path)
-
-                # print(f"finished file {i} from {len(files)}")
-
+                
+                execute_file(root, filename)
+                
+               

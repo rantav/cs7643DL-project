@@ -75,9 +75,6 @@ def style_transfer_our(dtype, cnn, content_img_path, style_img_path, out_img_pat
 for root, subdirs, files in os.walk(walk_dir):
     #random.shuffle(files)
     for i, filename in enumerate(files):
-        if i>=50:
-            break
-
         file_path = os.path.join(root, filename)
         style_path = f"{wiki_dir}/{random.choice(os.listdir(wiki_dir))}" #change dir name to whatever
 
