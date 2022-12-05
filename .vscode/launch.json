@@ -45,7 +45,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--task", "train",
+                "--task", "train_hyper",
             ]
         }
     ]

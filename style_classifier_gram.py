@@ -87,12 +87,11 @@ class GramLayer(nn.Module):
     def get_matrix(self):
         return self.G
 
-STYLE_LAYER_DEFAULT = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 class StyleClassifier(nn.Module):
-    def __init__(self, num_classes, style_layers=STYLE_LAYER_DEFAULT):
+    def __init__(self, num_classes, style_layer=0):
         super(StyleClassifier, self).__init__()
         self.num_classes = num_classes
-        base_cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
+        base_cnn = models.vgg19(weights=models.VGG19_Weights.IMAGENET1K_V1).features.to(device)
 
         self.gram_layers = []
 
@@ -117,7 +116,7 @@ class StyleClassifier(nn.Module):
 
             model.add_module(name, layer)
 
-            if name in style_layers:
+            if name == f'conv_{style_layer}':
                 gram_layer = GramLayer()
                 model.add_module("gram_layer_{}".format(i), gram_layer)
                 self.gram_layers.append(gram_layer)
@@ -127,23 +126,23 @@ class StyleClassifier(nn.Module):
             if isinstance(model[i], GramLayer):
                 break
         model = model[:(i + 1)]
-        self.seq = model
 
-        self.last = nn.Sequential(
-            nn.Linear(851_968, 128),
-            nn.Linear(128, num_classes))
+        # Add a last linear layer
+        model.add_module('classifier', nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(CONV_LAYER_OUTPUTS[style_layer], 128),
+            nn.ReLU(),
+            nn.Linear(128, num_classes),
+        ))
+        self.model = model
 
     def forward(self, x):
-        self.seq(x)
-        style_features = [gram_layer.get_matrix() for gram_layer in self.gram_layers]
-        # x = style_features[-1].view(x.size(0), -1) # TODO: concat all style features
-        x = torch.cat([f.view(x.size(0), -1) for f in style_features], dim=1)
-        out = self.last(x)
-        return out
+        return self.model(x)
 
-STYLE_LAYER_DEFAULT = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
-def create_model(num_classes, style_layers=STYLE_LAYER_DEFAULT):
-    model = StyleClassifier(num_classes, style_layers=style_layers)
+# STYLE_LAYER_DEFAULT = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
+def create_model(num_classes, style_layer=0):
+    model = StyleClassifier(num_classes, style_layer=style_layer)
+    summary(model, input_size=(3, 224, 224), batch_size=8)
     return model
 
 # Model training routine
@@ -215,16 +214,34 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=30, dataloade
     model.load_state_dict(best_model_wts)
     return model
 
+CONV_LAYER_OUTPUTS = [
+    3211264,
+    3211264,
+    3211264,
+    1605632,
+    1605632,
+    802816,
+    802816,
+    802816,
+    802816,
+    401408,
+    401408,
+    401408,
+    401408,
+    100352,
+    100352,
+    100352,
+]
 
-def train(config):
-    print("\nTraining...\n")
+def train(config, style_layer=0):
+    print(f"\nTraining with style_layer={style_layer}...\n")
 
     # Get the data
     dataloaders, dataset_sizes, class_names, num_classes = get_data(config)
 
     # Loss function
     criterion = nn.CrossEntropyLoss()
-    model = create_model(num_classes)
+    model = create_model(num_classes, style_layer=style_layer)
     # Optimizer
     optimizer_ft = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     # Learning rate decay
@@ -280,7 +297,7 @@ def classify_and_report(model_path, data_path, batch_size):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--task', type=str, default='classify', help='train or classify')
+    parser.add_argument('--task', type=str, default='classify', help='train, train_hyper or classify')
     parser.add_argument('--model_path', type=str, default='saved-models/model_4artists_256.pth', help='path to save/load the model')
     parser.add_argument('--test_directory', type=str, default='data/by-artist-4artists-256/test', help='path to the test data')
     parser.add_argument('--train_directory', type=str, default='data/by-artist-4artists-256/train', help='path to the train data')
@@ -293,6 +310,9 @@ def main():
         classify_and_report(config.model_path, config.test_directory, config.batch_size)
     elif config.task == 'train':
         train(config)
+    elif config.task == 'train_hyper':
+        for style_layer in range(15, 0, -1):
+            train(config, style_layer=style_layer)
     else:
         raise ValueError(f"Unknown task {config.task}")
 
