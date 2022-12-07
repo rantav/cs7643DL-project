@@ -76,6 +76,10 @@ run-experiments:
 			--images_per_artist=10 \
 			--images_per_class=10 \
 			--style_weight 1 5 10 50 100 500 1000 2500 5000 10000 25000 50000 100000 500000 1000000 2500000 5000000 7500000 10000000 20000000 30000000
+
+download-models:
+	wget -P ./saved-models https://storage.googleapis.com/dl-project-data/model_4artists_gram_256.pth
+
 gcp-ssh:
 	gcloud compute ssh \
 		--zone "us-east4-c" "deeplearning-1-vm"  \
