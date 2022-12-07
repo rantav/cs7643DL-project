@@ -71,12 +71,11 @@ run-experiments:
 	source .venv/bin/activate && \
 		python experiment.py \
 			--image_size=256 \
+			--style_classifier_model_path=saved-models/model_4artists_256.pth \
 			--output_dir=data/output/style_transfered \
-			--images_per_artist=5 \
-			--images_per_class=5 \
-			--num_steps=300 \
-			--style_weight 10000 50000 100000 500000 1000000
-
+			--images_per_artist=10 \
+			--images_per_class=10 \
+			--style_weight 1 5 10 50 100 500 1000 2500 5000 10000 25000 50000 100000 500000 1000000 2500000 5000000 7500000 10000000 20000000 30000000
 gcp-ssh:
 	gcloud compute ssh \
 		--zone "us-east4-c" "deeplearning-1-vm"  \
