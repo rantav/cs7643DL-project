@@ -32,7 +32,21 @@
             "request": "launch",
             "program": "${workspaceFolder}/style_classifier.py",
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": true,
+            "args": [
+                "--task", "train",
+            ]
+        },
+        {
+            "name": "style_classifier_gram",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/style_classifier_gram.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--task", "train_hyper",
+            ]
         }
     ]
 }

@@ -11,8 +11,9 @@ from torchvision import transforms
 from PIL import Image
 
 import style_transfer
-import style_classifier
 import content_classifier
+import style_classifier_gram as style_classifier
+from style_classifier_gram import StyleClassifier, GramLayer # Imports are needed
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

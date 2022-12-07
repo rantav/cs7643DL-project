@@ -145,3 +145,6 @@ output/
 by-artist-4artists-256.zip
 data-all
 dl-project-data.zip
+
+saved-models/model_4artists_128.pth
+saved-models/model_4artists_gram_256.pth
