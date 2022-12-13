@@ -3,8 +3,8 @@
 Members: Xenia Kramarenko, Ran Tavory
 
 ## Project Description
-TODO
-x
+DL course final project
+
 
 ## Setup
 1. Clone the repository
